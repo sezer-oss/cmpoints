@@ -1297,46 +1297,6 @@
                 </div>
             `;
 
-            // Detailed Table - show actual data entries, not grouped
-            html += `
-                <div class="table-container">
-                    <div class="table-wrapper">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Wallet Address</th>
-                                    <th>Category</th>
-                                    <th>Points</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-            `;
-
-            // Sort data by points descending
-            const sortedData = [...data].sort((a, b) => (b['Giza Points'] || 0) - (a['Giza Points'] || 0));
-
-            sortedData.forEach(row => {
-                const wallet = row['Wallet Address'] || '';
-                const displayWallet = wallet.length > 20 
-                    ? wallet.substring(0, 10) + '...' + wallet.substring(wallet.length - 8)
-                    : wallet;
-                
-                html += `
-                    <tr>
-                        <td class="wallet-address" title="${wallet}">${displayWallet}</td>
-                        <td><span class="category-badge">${row['TAG'] || 'Unknown'}</span></td>
-                        <td><span class="points">${row['Giza Points'] || 0}</span></td>
-                    </tr>
-                `;
-            });
-
-            html += `
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-
             resultsContent.innerHTML = html;
         }
 
