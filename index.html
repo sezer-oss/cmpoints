@@ -467,7 +467,7 @@
                     type="text" 
                     class="search-input" 
                     id="searchInput"
-                    placeholder="Enter wallet address (e.g., 0x9BAb459D...)"
+                    placeholder="Enter full wallet address (e.g., 0x9BAb459DAf6dde623CCDFf1ed98d72Bff030AE34)"
                 >
                 <button class="btn btn-search" id="searchBtn">SEARCH</button>
                 <button class="btn btn-clear" id="clearBtn">CLEAR</button>
@@ -533,12 +533,15 @@
                 <div style="text-align: center; padding: 60px 20px;">
                     <h2 style="font-size: 28px; margin-bottom: 20px; opacity: 0.9;">Welcome to Giza Community Points</h2>
                     <p style="font-size: 18px; opacity: 0.7; margin-bottom: 30px;">
-                        Enter a wallet address above to check community points
+                        Enter your complete wallet address to check community points
                     </p>
                     <div style="display: inline-block; padding: 20px 40px; background: rgba(189, 238, 99, 0.1); 
                                 border-radius: 12px; border: 1px solid rgba(189, 238, 99, 0.3);">
-                        <p style="font-size: 16px; color: #BDEE63;">
-                            Search by full or partial wallet address
+                        <p style="font-size: 16px; color: #BDEE63; margin-bottom: 10px;">
+                            ⚡ Full wallet address required
+                        </p>
+                        <p style="font-size: 14px; opacity: 0.7;">
+                            Example: 0x9BAb459DAf6dde623CCDFf1ed98d72Bff030AE34
                         </p>
                     </div>
                 </div>
@@ -554,22 +557,18 @@
                 return;
             }
 
+            // Only exact wallet address match (case-insensitive)
             filteredData = csvData.filter(row => {
                 const wallet = (row['Wallet Address'] || '').toLowerCase();
-                const tag = (row['TAG'] || '').toLowerCase();
-                return wallet.includes(searchTerm) || tag.includes(searchTerm);
+                return wallet === searchTerm;
             });
 
             renderResults(filteredData);
         }
 
-        // Live search on typing
-        let searchTimeout;
+        // Live search on typing - DISABLED for security (only search on button click)
         function handleLiveSearch() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                performSearch();
-            }, 300);
+            // Disabled - requires button click for security
         }
 
         // Render results
@@ -578,7 +577,7 @@
             
             if (data.length === 0) {
                 resultsContent.innerHTML = 
-                    '<div class="error-message">No community points found for this address.</div>';
+                    '<div class="error-message">No community points found for this wallet address.<br><span style="font-size: 14px; opacity: 0.7;">Please ensure you entered the complete wallet address correctly.</span></div>';
                 return;
             }
 
