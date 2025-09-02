@@ -1270,44 +1270,17 @@
                 `;
             }
 
-            // Chart and Summary Cards
-            html += '<div class="cards-grid">';
-            
-            // Points Distribution Chart
-            if (Object.keys(walletData.categories).length > 1) {
-                html += `
-                    <div class="chart-card">
-                        <h3 class="chart-title">Your Points Distribution</h3>
-                        <div class="chart-container">
-                `;
-                
-                const maxPoints = Math.max(...Object.values(walletData.categories));
-                Object.entries(walletData.categories).forEach(([category, points]) => {
-                    const height = (points / maxPoints) * 200; // Max height 200px
-                    html += `
-                        <div class="bar-group">
-                            <div class="bar" style="height: ${height}px;">
-                                <span class="bar-value">${points}</span>
-                            </div>
-                            <div class="bar-label">${category}</div>
-                        </div>
-                    `;
-                });
-                
-                html += `
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Summary Card
+            // Summary Card - now full width without chart
             html += `
-                <div class="summary-card">
+                <div class="summary-card" style="max-width: 600px; margin: 0 auto;">
                     <h2 class="summary-title">Points Summary</h2>
             `;
 
-            // Add category breakdowns
-            Object.entries(summary.categories).forEach(([category, points]) => {
+            // Add category breakdowns - sorted by points descending
+            const sortedSummaryCategories = Object.entries(summary.categories)
+                .sort((a, b) => b[1] - a[1]); // Sort by points descending
+            
+            sortedSummaryCategories.forEach(([category, points]) => {
                 html += `
                     <div class="summary-row">
                         <span class="summary-label">${category}</span>
@@ -1324,9 +1297,7 @@
                 </div>
             `;
 
-            html += '</div>'; // Close cards-grid
-
-            // Detailed Table
+            // Detailed Table - show actual data entries, not grouped
             html += `
                 <div class="table-container">
                     <div class="table-wrapper">
@@ -1341,12 +1312,11 @@
                             <tbody>
             `;
 
-            // Group entries by TAG for cleaner display
-            const sortedCategories = Object.entries(walletData.categories)
-                .sort((a, b) => b[1] - a[1]); // Sort by points descending
+            // Sort data by points descending
+            const sortedData = [...data].sort((a, b) => (b['Giza Points'] || 0) - (a['Giza Points'] || 0));
 
-            sortedCategories.forEach(([category, points]) => {
-                const wallet = walletData.wallet;
+            sortedData.forEach(row => {
+                const wallet = row['Wallet Address'] || '';
                 const displayWallet = wallet.length > 20 
                     ? wallet.substring(0, 10) + '...' + wallet.substring(wallet.length - 8)
                     : wallet;
@@ -1354,8 +1324,8 @@
                 html += `
                     <tr>
                         <td class="wallet-address" title="${wallet}">${displayWallet}</td>
-                        <td><span class="category-badge">${category}</span></td>
-                        <td><span class="points">${points}</span></td>
+                        <td><span class="category-badge">${row['TAG'] || 'Unknown'}</span></td>
+                        <td><span class="points">${row['Giza Points'] || 0}</span></td>
                     </tr>
                 `;
             });
