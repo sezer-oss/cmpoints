@@ -1001,29 +1001,92 @@
             categoryTotals: {}
         };
 
-        // Parse CSV data
+        // Parse CSV data - more robust parsing
         function parseCSV(text) {
-            const lines = text.trim().split('\n');
-            const headers = lines[0].split(',').map(h => h.trim());
+            // Handle different line endings
+            const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().split('\n');
+            
+            // Parse headers
+            const headers = parseCSVLine(lines[0]);
+            console.log('CSV Headers:', headers);
+            
             const data = [];
+            let parseErrors = 0;
 
             for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim());
-                if (values.length === headers.length) {
-                    const row = {};
-                    headers.forEach((header, index) => {
-                        row[header] = values[index];
-                    });
-                    // Convert points to number - handle string format
-                    if (row['Giza Points'] !== undefined && row['Giza Points'] !== null) {
-                        // Remove any non-numeric characters and parse
-                        const cleanedPoints = String(row['Giza Points']).replace(/[^0-9.-]/g, '');
-                        row['Giza Points'] = parseInt(cleanedPoints) || 0;
+                if (!lines[i].trim()) continue; // Skip empty lines
+                
+                try {
+                    const values = parseCSVLine(lines[i]);
+                    
+                    if (values.length === headers.length) {
+                        const row = {};
+                        headers.forEach((header, index) => {
+                            row[header.trim()] = values[index] ? values[index].trim() : '';
+                        });
+                        
+                        // Convert points to number - handle various formats
+                        if (row['Giza Points'] !== undefined && row['Giza Points'] !== null && row['Giza Points'] !== '') {
+                            // Remove any non-numeric characters except minus and decimal
+                            const cleanedPoints = String(row['Giza Points']).replace(/[^0-9.-]/g, '');
+                            const points = parseInt(cleanedPoints) || 0;
+                            row['Giza Points'] = points;
+                            
+                            // Debug specific categories
+                            if (row['TAG'] === 'ARMA Deposit & Hodl #2') {
+                                console.log(`ARMA entry found - Wallet: ${row['Wallet Address'].substring(0,10)}..., Points: ${points}`);
+                            }
+                        } else {
+                            row['Giza Points'] = 0;
+                        }
+                        
+                        data.push(row);
+                    } else {
+                        console.warn(`Line ${i+1} has ${values.length} columns, expected ${headers.length}. Line content:`, lines[i]);
+                        parseErrors++;
                     }
-                    data.push(row);
+                } catch (e) {
+                    console.error(`Error parsing line ${i+1}:`, e, 'Line content:', lines[i]);
+                    parseErrors++;
                 }
             }
+            
+            console.log(`CSV Parse complete: ${data.length} valid rows, ${parseErrors} errors`);
             return data;
+        }
+
+        // Helper function to parse CSV line handling quotes
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                const nextChar = line[i + 1];
+                
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        // Escaped quote
+                        current += '"';
+                        i++; // Skip next quote
+                    } else {
+                        // Toggle quote mode
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    // End of field
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            // Don't forget the last field
+            result.push(current);
+            
+            return result;
         }
 
         // Calculate global statistics
@@ -1033,8 +1096,12 @@
             const categories = new Set();
             const categoryTotals = {};
 
+            // Test wallet check
+            const testWallet = '0x7a6036c222fd3bb41a0411a8c74e2e88903b6fb6';
+            let testWalletEntries = [];
+
             data.forEach(row => {
-                const wallet = row['Wallet Address'];
+                const wallet = row['Wallet Address'] || '';
                 const tag = row['TAG'] || 'Unknown';
                 const points = row['Giza Points'] || 0;
 
@@ -1046,12 +1113,40 @@
                     categoryTotals[tag] = 0;
                 }
                 categoryTotals[tag] += points;
+
+                // Check test wallet
+                if (wallet.toLowerCase() === testWallet.toLowerCase()) {
+                    testWalletEntries.push({tag, points});
+                }
             });
 
-            // Debug logging for ARMA Deposit & Hodl #2
-            console.log('ARMA Deposit & Hodl #2 total:', categoryTotals['ARMA Deposit & Hodl #2'] || 'Not found');
-            console.log('All category totals:', categoryTotals);
-            console.log('Total data rows:', data.length);
+            // Debug logging
+            console.log('=== STATISTICS DEBUG ===');
+            console.log('Total unique wallets:', walletSet.size);
+            console.log('Total points distributed:', totalPoints);
+            console.log('Total categories:', categories.size);
+            console.log('\n=== ARMA DEPOSIT & HODL #2 DEBUG ===');
+            console.log('ARMA Deposit & Hodl #2 total points:', categoryTotals['ARMA Deposit & Hodl #2'] || 'Category not found');
+            
+            // Log all categories that contain "ARMA"
+            Object.keys(categoryTotals).forEach(cat => {
+                if (cat.includes('ARMA')) {
+                    console.log(`${cat}: ${categoryTotals[cat]} points`);
+                }
+            });
+            
+            console.log('\n=== TEST WALLET DEBUG ===');
+            console.log(`Entries for ${testWallet}:`, testWalletEntries);
+            console.log('Test wallet total points:', testWalletEntries.reduce((sum, e) => sum + e.points, 0));
+            
+            // Log top 10 categories by points
+            console.log('\n=== TOP 10 CATEGORIES ===');
+            const sortedCategories = Object.entries(categoryTotals)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+            sortedCategories.forEach(([cat, points]) => {
+                console.log(`${cat}: ${points} points`);
+            });
 
             globalStats = {
                 totalPoints: totalPoints,
