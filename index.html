@@ -1014,9 +1014,11 @@
                     headers.forEach((header, index) => {
                         row[header] = values[index];
                     });
-                    // Convert points to number
-                    if (row['Giza Points']) {
-                        row['Giza Points'] = parseInt(row['Giza Points']) || 0;
+                    // Convert points to number - handle string format
+                    if (row['Giza Points'] !== undefined && row['Giza Points'] !== null) {
+                        // Remove any non-numeric characters and parse
+                        const cleanedPoints = String(row['Giza Points']).replace(/[^0-9.-]/g, '');
+                        row['Giza Points'] = parseInt(cleanedPoints) || 0;
                     }
                     data.push(row);
                 }
@@ -1045,6 +1047,11 @@
                 }
                 categoryTotals[tag] += points;
             });
+
+            // Debug logging for ARMA Deposit & Hodl #2
+            console.log('ARMA Deposit & Hodl #2 total:', categoryTotals['ARMA Deposit & Hodl #2'] || 'Not found');
+            console.log('All category totals:', categoryTotals);
+            console.log('Total data rows:', data.length);
 
             globalStats = {
                 totalPoints: totalPoints,
@@ -1164,6 +1171,15 @@
                 if (!response.ok) throw new Error('Failed to load CSV file');
                 const text = await response.text();
                 csvData = parseCSV(text);
+                
+                // Debug check for specific wallet
+                const testWallet = '0x7a6036c222fd3bb41a0411a8c74e2e88903b6fb6';
+                const testEntries = csvData.filter(row => 
+                    row['Wallet Address'].toLowerCase() === testWallet.toLowerCase()
+                );
+                console.log(`Entries for ${testWallet}:`, testEntries);
+                console.log('Total CSV rows loaded:', csvData.length);
+                
                 calculateGlobalStats(csvData);
                 document.getElementById('loadingState').style.display = 'none';
                 showWelcomeMessage();
@@ -1218,18 +1234,26 @@
 
         // Search functionality
         function performSearch() {
-            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+            const searchTerm = document.getElementById('searchInput').value.trim();
             
             if (!searchTerm) {
                 showWelcomeMessage();
                 return;
             }
 
+            // Normalize the search term - handle different formats
+            const normalizedSearch = searchTerm.toLowerCase().replace(/\s+/g, '');
+
             // Only exact wallet address match (case-insensitive)
             filteredData = csvData.filter(row => {
-                const wallet = (row['Wallet Address'] || '').toLowerCase();
-                return wallet === searchTerm;
+                const wallet = (row['Wallet Address'] || '').toLowerCase().replace(/\s+/g, '');
+                return wallet === normalizedSearch;
             });
+
+            // Debug logging
+            console.log('Search term:', normalizedSearch);
+            console.log('Found entries:', filteredData.length);
+            console.log('Filtered data:', filteredData);
 
             renderResults(filteredData, searchTerm);
         }
