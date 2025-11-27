@@ -1235,15 +1235,16 @@
         // Calculate wallet ranking
         function calculateWalletRank(walletAddress) {
             // Group all wallets with their total points
-            const walletTotals = {};
-            csvData.forEach(row => {
-                const wallet = row['Wallet Address'];
-                const points = row['Giza Points'] || 0;
-                if (!walletTotals[wallet]) {
-                    walletTotals[wallet] = 0;
-                }
-                walletTotals[wallet] += points;
-            });
+const walletTotals = {};
+csvData.forEach(row => {
+    // Cüzdan adresini normalize et (hepsini küçük harf ve boşluksuz yap)
+    const wallet = (row['Wallet Address'] || '').toLowerCase().replace(/\s+/g, '');
+    const points = row['Giza Points'] || 0;
+    if (!walletTotals[wallet]) {
+        walletTotals[wallet] = 0;
+    }
+    walletTotals[wallet] += points;
+});
 
             // Sort wallets by total points
             const sortedWallets = Object.entries(walletTotals)
@@ -1305,24 +1306,26 @@
         function groupDataByWallet(data) {
             const grouped = {};
             
-            data.forEach(row => {
-                const wallet = row['Wallet Address'];
-                if (!grouped[wallet]) {
-                    grouped[wallet] = {
-                        wallet: wallet,
-                        categories: {},
-                        totalPoints: 0
-                    };
-                }
-                
-                const tag = row['TAG'] || 'Unknown';
-                if (!grouped[wallet].categories[tag]) {
-                    grouped[wallet].categories[tag] = 0;
-                }
-                
-                grouped[wallet].categories[tag] += row['Giza Points'] || 0;
-                grouped[wallet].totalPoints += row['Giza Points'] || 0;
-            });
+data.forEach(row => {
+    // Cüzdan adresini normalize et
+    const wallet = (row['Wallet Address'] || '').toLowerCase().replace(/\s+/g, '');
+    if (!grouped[wallet]) {
+        grouped[wallet] = {
+            wallet: wallet,
+            categories: {},
+            totalPoints: 0
+        };
+    }
+    
+    const tag = row['TAG'] || 'Unknown';
+    if (!grouped[wallet].categories[tag]) {
+        grouped[wallet].categories[tag] = 0;
+    }
+    
+    grouped[wallet].categories[tag] += row['Giza Points'] || 0;
+    grouped[wallet].totalPoints += row['Giza Points'] || 0;
+});
+
             
             return grouped;
         }
